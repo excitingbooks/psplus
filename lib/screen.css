@@ -27,10 +27,11 @@ screen > * {
   flex-grow: 1;
 }
 
-screen menu {
+screen menu, screen options {
   border: 1px solid white;
   margin: 0;
   padding: 0;
+  width: 50%;
 }
 
 screen menu item {
@@ -45,8 +46,45 @@ screen menu item:hover {
 }
 
 screen sidebar {
-  /* border: 1px solid blue; */
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+screen sidebar textfields {
+  position: absolute;
+}
+
+screen sidebar textfields input {
+  font-size: 6px;
+  color: white;
+  background-color: black;
+  border: 0.25px solid white;
+  margin: 1px;
+}
+
+
+screen key {
+  color: black;
+  background-color: white;
+  border-radius: 1px;
+  padding: 0 2px 0 1px;
+}
+
+screen key[space=' ']:after {
+  content: '\a0\a0\a0\a0';
+}
+
+screen prompt {
+  position: fixed;
+  bottom: 37%;
+  width: initial;
+  height: initial;
+  background-color: black;
+  cursor: default;
+}
+
+screen target {
+  cursor: pointer;
 }

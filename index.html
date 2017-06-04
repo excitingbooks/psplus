@@ -2,13 +2,27 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
-  <link href="lib/screen.scss" rel="stylesheet">
+
+  <script>Manifests = [];</script>
+  <script src="lib/polyfills.js"></script>
+  <script src="lib/printout.js"></script>
   <script src="lib/screen.js"></script>
-  <link rel="import" href="screens/Poster.html">
+  <script src="screens/main.js"></script>
+  <script src="screens/poster.js"></script>
+  <script src="screens/graphic.js"></script>
+  <script src="screens/text.js"></script>
+  <script src="screens/preview.js"></script>
+  <script src="screens/print.js"></script>
+  <script src="borders/manifest.js"></script>
+  <script src="fonts/manifest.js"></script>
+  <script src="graphics/manifest.js"></script>
+  
+  <link href="lib/screen.css" rel="stylesheet">
+  <link href="lib/printout.css" rel="stylesheet">
 </head>
 
 <body>
-  <screen>
+  <screen name="Main" default="true">
     <menu>
       <item>Poster</item>
       <item>Card</item>
@@ -18,15 +32,69 @@
       <item>Exit</item>
     </menu>
     <sidebar>
-      <img class="menuGraphic" />
+      <img class="menuGraphic">
     </sidebar>
   </screen>
+  
+  <screen name="Poster">
+    <menu>
+      <item>Border</item>
+      <item>Graphic</item>
+      <item>Text</item>
+      <item>Preview</item>
+      <item>Exit to Menu</item>
+    </menu>
+    <sidebar>
+      <img class="menuGraphic">
+    </sidebar>
+  </screen>
+  
+  <screen name="Graphic">
+    <menu></menu>
+    <sidebar>
+      <img class="menuGraphic">
+    </sidebar>
+  </screen>
+  
+  <screen name="Text">
+    <options></options>
+    <sidebar>
+      <textFields></textFields>
+      <printout></printout>
+    </sidebar>
+  </screen>
+  
+  <screen name="Preview">
+    <printout></printout>
+    <prompt>
+      <target key="[Esc]">
+        <key>Esc</key> to return
+      </target> |
+      <target key="p">
+        <key>p</key> to print |
+      </target>
+      <target key=" ">
+        <key space=" "></key> to hide this message
+      </target>
+    </prompt>
+  </screen>
+  
+  <screen name="Print">
+    <printout></printout>
+  </screen>
+  
+  
   <credits>
     <item>PrintShitPlus by Exciting Books</item>
     <item>Ocelot by Amelia Wattenberger (the Noun Project)</item>
     <item>Cannabis by Alina Oleynik (the Noun Project)</item>
     <item>Bananas by Vladimir Belochkin (the Noun Project)</item>
+    <item>Umbrella by Rockicon (the Noun Project)</item>
     <item>Exit by Adrien Coquet (the Noun Project)</item>
+    <item>Cake by Fernando Affonso (the Noun Project)</item>
+    <item>Ice Cream by Setyo Ari Wibowo (the Noun Project)</item>
+    <item>Bouquet by Alena Artemova (the Noun Project)</item>
+    <item>Penguin by Camila Bertoco (the Noun Project)</item>
   </credits>
 </body>
 </html>

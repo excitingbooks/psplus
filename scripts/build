@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+
+require 'json'
+
+def build
+  build_manifests
+end
+
+def build_manifests
+  %w{borders fonts graphics}.each do |dir|
+    files = Dir["#{dir}/*.png"].map do |_|
+      _.split('/').last.split('.').first
+    end
+    write_manifest dir, files
+  end
+end
+
+def write_manifest dir, files
+  open("#{dir}/manifest.js", 'w') do |f|
+    f << "Manifests[#{dir.to_json}] = #{files.to_json};"
+  end
+end
+
+build

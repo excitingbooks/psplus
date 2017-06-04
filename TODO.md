@@ -1,0 +1,2 @@
+- Rename sidebar element
+- Auto el'ify elements

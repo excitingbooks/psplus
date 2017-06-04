@@ -1,0 +1,1 @@
+Manifests["graphics"] = ["bouquet","cake","cannabis","disk1","disk2","ice_cream","party","umbrella"];
