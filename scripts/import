@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+
+require 'chunky_png'
+
+def import(file)
+  shp = open file
+  index = 0
+  
+  titles = read_titles file
+  
+  until shp.eof? do
+    puts "*** #{titles[index]} ***"
+    graphic = read_graphic shp
+    write_graphic graphic, titles[index]
+    index += 1
+  end
+end
+
+def read_titles(file)
+  sdr = open file.sub('.SHP', '.SDR')
+  sdr.each_char.each_slice(16).map { |x| x.join().strip }
+end
+
+def read_graphic(shp)
+  header_size = 4
+  width_bytes, height, width, zero = shp.read(header_size).unpack('C*')
+  byte_count = width_bytes * height
+  bytes = shp.read(byte_count)
+  #bytes.unpack("B*").first.chars.each_slice(width) { |x| puts x.join('') }
+  
+  extra_byte = shp.read(1).unpack('C') # Should be 115?
+  
+  return { bytes: bytes, width: width, height: height }
+end
+
+def write_graphic(graphic, title)
+  scale = 4
+  
+  width = graphic[:width]
+  height = graphic[:height]
+  bytes = graphic[:bytes]
+  
+  png = ChunkyPNG::Image.new(width * scale, height * scale, ChunkyPNG::Color::TRANSPARENT)
+  bytes.unpack("B*").first.chars.each_slice(width).each_with_index do |bits, y|
+    bits.each_with_index do |bit, x|
+      color = ChunkyPNG::Color(bit == "1" ? 'black' : 'white')
+      (0...scale).each do |i|
+        (0...scale).each do |j|
+          png[x * scale + i, y * scale + j] = color
+        end
+      end
+    end
+  end
+  
+  puts "Saving out/#{title}.png"
+  png.save "out/#{title}.png"
+end
+
+ARGV.each { |f| import f }
