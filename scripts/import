@@ -2,58 +2,206 @@
 
 require 'chunky_png'
 
-def import(file)
-  shp = open file
-  index = 0
+class Graphic
+  def write_graphic(graphic, title)
+    filename = "out/#{title}.png"
   
-  titles = read_titles file
+    bytes = graphic[:bytes]
+    width = graphic[:width]
+    raw_width = graphic[:raw_width] || width
+    height = graphic[:height] || bytes.length * 8 / width
+    scale_x = graphic[:scale_x] || 4
+    scale_y = graphic[:scale_y] || 4
+    
+    puts "Saving #{filename} [#{width}x#{height}] x (#{scale_x}, #{scale_y})"
   
-  until shp.eof? do
-    puts "*** #{titles[index]} ***"
-    graphic = read_graphic shp
-    write_graphic graphic, titles[index]
-    index += 1
-  end
-end
-
-def read_titles(file)
-  sdr = open file.sub('.SHP', '.SDR')
-  sdr.each_char.each_slice(16).map { |x| x.join().strip }
-end
-
-def read_graphic(shp)
-  header_size = 4
-  width_bytes, height, width, zero = shp.read(header_size).unpack('C*')
-  byte_count = width_bytes * height
-  bytes = shp.read(byte_count)
-  #bytes.unpack("B*").first.chars.each_slice(width) { |x| puts x.join('') }
-  
-  extra_byte = shp.read(1).unpack('C') # Should be 115?
-  
-  return { bytes: bytes, width: width, height: height }
-end
-
-def write_graphic(graphic, title)
-  scale = 4
-  
-  width = graphic[:width]
-  height = graphic[:height]
-  bytes = graphic[:bytes]
-  
-  png = ChunkyPNG::Image.new(width * scale, height * scale, ChunkyPNG::Color::TRANSPARENT)
-  bytes.unpack("B*").first.chars.each_slice(width).each_with_index do |bits, y|
-    bits.each_with_index do |bit, x|
-      color = ChunkyPNG::Color(bit == "1" ? 'black' : 'white')
-      (0...scale).each do |i|
-        (0...scale).each do |j|
-          png[x * scale + i, y * scale + j] = color
+    png = ChunkyPNG::Image.new(width * scale_x, height * scale_y, ChunkyPNG::Color::TRANSPARENT)
+    bytes.unpack("B*").first.chars.each_slice(raw_width).each_with_index do |row, y|
+      row.each_with_index do |bit, x|
+        color = ChunkyPNG::Color(bit == "1" ? 'black' : 'white')
+        (0...scale_y).each do |i|
+          (0...scale_x).each do |j|
+            begin
+              png[x * scale_x + j, y * scale_y + i] = color
+            rescue
+            end
+          end
         end
       end
     end
+  
+    png.save filename
+  end
+end
+
+class PMPlus < Graphic
+  def import(file)
+    shp = open file
+    index = 0
+  
+    titles = read_titles file
+  
+    until shp.eof? do
+      puts "*** #{titles[index]} ***"
+      graphic = read_graphic shp
+      write_graphic graphic, titles[index]
+      index += 1
+    end
+  end
+
+  def read_titles(file)
+    sdr = open file.sub('.SHP', '.SDR')
+    sdr.each_char.each_slice(16).map do |x|
+      nul = false
+      str = ''
+      i = 0
+      while !nul
+        char = x[i]
+        i += 1
+        if char == "\0"
+          nul = true
+        else
+          str = str + char
+        end
+      end
+      #x.join().sub(/\0+/, '').strip
+      str.strip
+    end
+  end
+
+  def read_graphic(shp)
+    header_size = 4
+    width_bytes, height, width, zero = shp.read(header_size).unpack('C*')
+    byte_count = width_bytes * height
+    bytes = shp.read(byte_count)
+    #bytes.unpack("B*").first.chars.each_slice(width) { |x| puts x.join('') }
+    puts "read_graphic width_bytes #{width_bytes} | height #{height} | width #{width} | zero #{zero}"
+  
+    extra_byte = shp.read(1).unpack('C') # Should be 115?
+  
+    { bytes: bytes, width: width, height: height, raw_width: width_bytes * 8, scale_x: 4, scale_y: 7 }
+  end
+end
+
+class PrintShop < Graphic
+  def import(file)
+    dat = open file
+    index = 0
+  
+    titles = read_titles file
+  
+    until dat.eof? do
+      puts "*** #{titles[index]} ***"
+      graphic = read_graphic dat
+      write_graphic graphic, titles[index]
+      index += 1
+    end
+  end
+
+  def read_titles(file)
+    sdr = open file.sub('.DAT', '.NAM')
+    sdr.each_char.each_slice(16).map { |x| x.join().strip }
+  end
+
+  def read_graphic(dat)
+    width = 88
+    width_bytes = 11
+    height = 52
+    byte_count = width_bytes * height
+    bytes = dat.read(byte_count)
+    bytes.unpack("B*").first.chars.each_slice(width) { |x| puts x.join('') }
+  
+    { bytes: bytes, width: width, height: height }
+  end
+end
+
+class NewPS < Graphic
+  def import(file)
+    shp = open file
+    index = 0
+  
+    titles = read_titles file
+    
+    header_size = 10
+    file_header = shp.read header_size
+  
+    until shp.eof? or !titles[index] do
+      puts "*** #{titles[index]} ***"
+      graphic = read_graphic shp
+      write_graphic graphic, titles[index]
+      index += 1
+    end
+  end
+
+  def read_titles(file)
+    sdr = open file.sub('.PNG', '.PNM')
+    sdr.each_char.each_slice(16).map { |x| x.join().strip }
+  end
+
+  def read_graphic(shp)
+    #header_size = 10
+    #header = shp.read(header_size)
+    #width_bytes, height, width, zero = shp.read(header_size).unpack('C*')
+    width = 88
+    width_bytes = 11
+    height = 52
+    
+    byte_count = width_bytes * height
+    bytes = shp.read(byte_count)
+    bytes.unpack("B*").first.chars.each_slice(width) { |x| puts x.join('') }
+  
+    #extra_byte = shp.read(1).unpack('C') # Should be 115?
+  
+    { bytes: bytes, width: width, height: height }
+  end
+end
+
+class PrintMagic < Graphic
+  def import(filename)
+    file = open filename
+    index = 0
+  
+    title = filename.split('/').last.split('.').first
+    
+    header_size = 24
+    file_header = file.read header_size
+    
+    width = file_header[10..11].unpack('S<').first
+    raw_width = width + (8 - width % 8)
+    
+    bytes = read_graphic file
+    write_graphic({bytes: bytes, width: width, raw_width: raw_width}, title)
   end
   
-  puts "Saving out/#{title}.png"
-  png.save "out/#{title}.png"
+  def read_graphic(file)
+    bytes = []
+  
+    pos = 0
+    until file.eof?
+      byte = file.read(1)
+      if byte.unpack('C').first == 0xBF
+        run = file.read(1).unpack('C').first + 1
+        char = file.read(1)
+        bytes << char * run
+      else
+        bytes << byte
+      end
+    end
+    
+    bytes.join
+  end
+end
+
+def import(file)
+  if file.downcase =~ /\.shp/
+    PMPlus.new.import file
+  elsif file.downcase =~ /\.dat/
+    PrintShop.new.import file
+  elsif file.downcase =~ /\.png/
+    NewPS.new.import file
+  elsif file.downcase =~ /\.pmg/
+    PrintMagic.new.import file
+  end
 end
 
 ARGV.each { |f| import f }
