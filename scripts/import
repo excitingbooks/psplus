@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'chunky_png'
+require 'json'
 
 class File
   def read_until_byte(byte, max: nil, keep: false)
@@ -19,7 +20,6 @@ class File
     buf
   end
 end
-
 
 class Graphic
   def write_graphic(graphic, title)
@@ -52,6 +52,103 @@ class Graphic
     png.save filename
   end
 end
+
+class PMPlusFont
+  def import(filename)
+    @name = filename.split('/').last.sub(/\.[^\.]+$/, '').downcase.capitalize
+
+    file = open filename
+    header = file.read 0xb6
+    @count = 0
+    @chars = {}
+    
+    
+    @max_char_width = 0
+    @max_char_height = 0
+    
+    read_char(file) until file.eof? rescue nil
+    
+    write_chars
+    
+  end
+  
+  def read_char(f)
+    @count += 1
+    rowlen, rows, cols, _zero = f.read(4).unpack('C*')
+    if _zero != 0
+      puts "* extra byte! #{rowlen}"
+      rowlen = rows
+      rows = cols
+      cols = _zero
+      _zero = f.read(1).unpack('C*').first
+    end
+    puts "reading char ##{@count} #{[rowlen, rows, cols, _zero]}"
+    bits = f.read(rows * rowlen)
+
+    width = rowlen * 8
+    bit_rows = bits.unpack("B*").first.chars.each_slice(width)
+    bit_rows.each { |x| puts x.join }
+    
+    @chars[(' '..'~').to_a[@count]] = {
+      index: @count,
+      bits: bit_rows,
+      width: cols,
+      height: rows
+    }
+    
+    @max_char_width = [@max_char_width, rows].max
+    @max_char_height = [@max_char_height, cols].max
+    
+    puts "*** MAX SIZE #{@max_char_width}, #{@max_char_height}"
+    puts
+  end
+  
+  def write_chars
+    png_cols = 8 + 1
+    png_rows = 12 + 1
+    png_width = (@max_char_width * 1.4 * png_cols).to_i
+    png_height = (@max_char_height * 1.4 * png_rows).to_i
+    index_png = ChunkyPNG::Image.new(png_width, png_height, ChunkyPNG::Color::TRANSPARENT)
+    puts " PNG size #{@max_char_width}*9, #{@max_char_height} (#{@max_char_width*9}, #{@max_char_height*14})"
+    @chars.each { |k, v| write_char v, index_png }
+    index_png.save "fonts/#{@name}.png"
+    
+    char_map = Hash[@chars.map { |k, v| [k, { index: v[:index], width: v[:width], height: v[:height]}]}]
+    #puts "JSSSOONNNNNNNNN #{json}"
+    manifest = (JSON.parse open("fonts/manifest.json").read rescue nil) || {}
+    manifest[@name] = { chars: char_map }
+    #puts "MANNNNIFESSSTTTTT #{manifest}"
+    open("fonts/manifest.json", 'w') { |f| f.write JSON.pretty_generate(manifest) }
+  end
+  
+  def write_char(char, index_png)
+    bit_rows = char[:bits]
+    index = char[:index]
+    
+    block_width = (@max_char_width * 1.2).to_i
+    block_height = (@max_char_height * 1.2).to_i
+    
+    index_x = index % 8
+    index_y = index / 8 + 1
+    start_x = index_x * block_width
+    start_y = index_y * block_height
+    
+    black = ChunkyPNG::Color 'black'
+    
+    #puts "write_char #{index_x}, #{index_y} / #{start_x}, #{start_y}"
+    
+    bit_rows.each_with_index do |row, i|
+      row.each_with_index do |bit, j|
+        index_png[start_x + j, start_y + i] = black if bit == '1'
+      end
+    end
+  end
+  
+  def print_char(bits, width)
+    bits.unpack("B*").first.chars.each_slice(width) { |x| puts x.join }
+  end
+end
+
 
 class PMPlus < Graphic
   def import(filename)
@@ -242,6 +339,7 @@ class PrintPower < Graphic
     filename = "#{path}/GV11.001"
     file = open filename
     file_header = file.read 4
+    puts "file_header #{file_header.unpack('C*')}"
     while not file.eof?
       read_graphic file
     end
@@ -265,15 +363,15 @@ class PrintPower < Graphic
     if $graphic == 2
       length = 818
     elsif $graphic == 3
-      #length = 1458
+      length = 1458
       #length = 1462
       #length = 1465
       #length = 1479
       #length = 1479
       #length = 1482
-      length = 1490
+      #length = 1490
     elsif $graphic == 4
-      length = 1000
+      length = 1200
     end
     
     puts "run_char #{run_char} length #{length} header #{header.inspect}"
@@ -347,7 +445,9 @@ class PrintPower < Graphic
 end
 
 def import(file)
-  if file.downcase =~ /\.shp/
+  if file.downcase =~ /\.fnt/
+    PMPlusFont.new.import file
+  elsif file.downcase =~ /\.shp/
     PMPlus.new.import file
   elsif file.downcase =~ /\.dat/
     PrintShop.new.import file
