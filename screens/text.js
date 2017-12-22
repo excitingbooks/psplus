@@ -27,7 +27,7 @@ class Text extends Screen {
   
   initTextFields() {
     let e = document.createElement('textFields');
-    for (let i=0; i<9; i++) {
+    for (let i=0; i < 9; i++) {
       this.fields[i] = this.textField(i);
       e.appendChild(this.fields[i]);
     }
